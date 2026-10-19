@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f2">
+  <meta name="description" content="Ένας σύντομος οδηγός για τη χαρτογραφία GIS, με βασικές έννοιες και πρόσφατες ενημερώσεις.">
+  <title>Χάρτης &amp; Τόπος | GIS με την Κική</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18332e;
+      --muted: #61716b;
+      --paper: #f5f7f2;
+      --white: #fff;
+      --green: #1e6d57;
+      --green-dark: #164d40;
+      --lime: #d2eb68;
+      --blue: #dcecf3;
+      --coral: #f17b5d;
+      --line: #dfe5dc;
+      --serif: "Space Grotesk", sans-serif;
+      --sans: "DM Sans", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    a { color: inherit; }
+    .wrap { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
+
+    .topbar {
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--lime);
+      color: var(--green-dark);
+      font: 700 15px var(--serif);
+    }
+    .brand-name { font: 700 15px var(--serif); letter-spacing: 0; }
+    .brand-sub { display: block; margin-top: -4px; color: var(--muted); font-size: 11px; }
+    nav { display: flex; gap: 30px; }
+    nav a { color: var(--muted); font-size: 13px; text-decoration: none; }
+    nav a:hover, nav a:focus-visible { color: var(--green); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 0.94fr 1.06fr;
+      gap: 52px;
+      align-items: center;
+      padding: 58px 0 66px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 18px;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { width: 20px; height: 2px; background: var(--coral); content: ""; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { font-family: var(--serif); letter-spacing: 0; }
+    h1 { max-width: 500px; margin-bottom: 18px; font-size: 62px; line-height: 1.04; }
+    h1 span { color: var(--green); }
+    .intro { max-width: 475px; margin-bottom: 26px; color: var(--muted); font-size: 17px; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 10px 20px; color: var(--muted); font-size: 12px; }
+    .hero-meta strong { color: var(--ink); font-weight: 600; }
+    .hero-map {
+      position: relative;
+      min-height: 365px;
+      overflow: hidden;
+      border: 1px solid #c8d3cb;
+      border-radius: 4px;
+      background: var(--blue);
+      box-shadow: 12px 12px 0 var(--lime);
+      animation: arrive 650ms ease-out both;
+    }
+    .hero-map iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .map-label {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      padding: 7px 11px;
+      border: 1px solid #dfe5dc;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, .94);
+      color: var(--ink);
+      font-size: 11px;
+      pointer-events: none;
+    }
+
+    .ticker { background: var(--green-dark); color: var(--white); }
+    .ticker-inner { min-height: 62px; display: flex; align-items: center; gap: 18px; }
+    .ticker-tag { flex: 0 0 auto; padding: 5px 9px; background: var(--lime); color: var(--green-dark); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .ticker p { margin: 0; font-size: 13px; }
+    .ticker a { color: var(--lime); text-underline-offset: 3px; }
+
+    section { scroll-margin-top: 24px; }
+    .section { padding: 76px 0; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }
+    .section-heading .eyebrow { margin-bottom: 10px; }
+    h2 { margin-bottom: 0; font-size: 38px; line-height: 1.15; }
+    .section-note { max-width: 360px; margin-bottom: 2px; color: var(--muted); font-size: 14px; }
+    .basics { background: var(--white); }
+    .concept-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .concept { min-height: 225px; padding: 26px 28px 26px 0; }
+    .concept + .concept { padding-left: 28px; border-left: 1px solid var(--line); }
+    .concept-index { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; color: var(--green); font: 600 13px var(--serif); }
+    .concept-index span:last-child { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 50%; background: var(--blue); color: var(--green-dark); font-size: 12px; }
+    h3 { margin-bottom: 8px; font-size: 20px; }
+    .concept p { margin-bottom: 0; color: var(--muted); font-size: 14px; }
+    .use-strip { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 22px; }
+    .use-label { margin-right: 6px; color: var(--muted); font-size: 12px; }
+    .use-chip { padding: 6px 11px; border: 1px solid var(--line); border-radius: 99px; color: var(--ink); font-size: 12px; }
+
+    .updates { background: #e9f0e9; }
+    .updates-heading { margin-bottom: 26px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filter {
+      min-height: 36px;
+      padding: 7px 13px;
+      border: 1px solid #cbd7cd;
+      border-radius: 99px;
+      background: transparent;
+      color: var(--ink);
+      font: 600 12px var(--sans);
+      cursor: pointer;
+    }
+    .filter:hover, .filter[aria-pressed="true"] { border-color: var(--green-dark); background: var(--green-dark); color: var(--white); }
+    .update-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .update-card {
+      display: flex;
+      min-height: 265px;
+      flex-direction: column;
+      padding: 23px;
+      border: 1px solid #d3ddd4;
+      border-radius: 4px;
+      background: var(--white);
+      animation: arrive 500ms ease-out both;
+    }
+    .update-card:nth-child(2) { animation-delay: 80ms; }
+    .update-card:nth-child(3) { animation-delay: 160ms; }
+    .update-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 21px; }
+    .update-kind { padding: 5px 8px; border-radius: 2px; background: var(--blue); color: var(--green-dark); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .update-date { color: var(--muted); font-size: 11px; }
+    .update-card:nth-child(2) .update-kind { background: #fae4db; color: #99462f; }
+    .update-card:nth-child(3) .update-kind { background: #edf2cf; color: #586323; }
+    .update-card h3 { margin-bottom: 9px; font-size: 20px; }
+    .update-card p { margin-bottom: 18px; color: var(--muted); font-size: 13px; }
+    .source-link { display: inline-flex; align-items: center; gap: 6px; margin-top: auto; color: var(--green); font-size: 12px; font-weight: 700; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    .source-link:hover { color: var(--green-dark); }
+    .update-card[hidden] { display: none; }
+
+    .closing { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 42px 0; }
+    .closing p { max-width: 580px; margin-bottom: 0; color: var(--muted); font-size: 14px; }
+    .signature { flex: 0 0 auto; color: var(--green-dark); font: 600 21px var(--serif); transform: rotate(-4deg); }
+    footer { padding: 18px 0 26px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; }
+
+    @keyframes arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 760px) {
+      .wrap { width: min(100% - 32px, 540px); }
+      .topbar { height: 66px; }
+      nav { gap: 15px; }
+      nav a { font-size: 12px; }
+      .hero { grid-template-columns: 1fr; gap: 30px; padding: 48px 0 54px; }
+      h1 { max-width: 440px; font-size: 48px; }
+      .intro { font-size: 16px; }
+      .hero-map { min-height: 320px; }
+      .ticker-inner { padding: 12px 0; align-items: flex-start; }
+      .ticker p { font-size: 12px; }
+      .section { padding: 58px 0; }
+      .section-heading { align-items: flex-start; flex-direction: column; }
+      h2 { font-size: 32px; }
+      .concept-grid { grid-template-columns: 1fr; }
+      .concept { min-height: 0; padding: 22px 0; }
+      .concept + .concept { padding-left: 0; border-top: 1px solid var(--line); border-left: 0; }
+      .concept-index { margin-bottom: 13px; }
+      .update-list { grid-template-columns: 1fr; }
+      .update-card { min-height: 0; }
+      .closing { align-items: flex-start; flex-direction: column; padding: 34px 0; }
+    }
+    @media (max-width: 400px) {
+      nav { gap: 10px; }
+      nav a { font-size: 11px; }
+      h1 { font-size: 42px; }
+      .hero-map { min-height: 275px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="wrap topbar">
+    <a class="brand" href="#top" aria-label="Χάρτης και Τόπος, αρχική">
+      <span class="brand-mark" aria-hidden="true">ΧΤ</span>
+      <span><span class="brand-name">ΧΑΡΤΗΣ &amp; ΤΟΠΟΣ</span><span class="brand-sub">Μικρός οδηγός GIS</span></span>
+    </a>
+    <nav aria-label="Κύρια πλοήγηση">
+      <a href="#basics">Τα βασικά</a>
+      <a href="#updates">Ενημερώσεις</a>
+      <a href="#about">Σχετικά</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <div class="wrap hero">
+      <div>
+        <p class="eyebrow">Γεωγραφικά Συστήματα Πληροφοριών</p>
+        <h1>Ο κόσμος,<br>σε <span>στρώσεις.</span></h1>
+        <p class="intro">Η χαρτογραφία GIS ενώνει χάρτες και δεδομένα για να μας βοηθήσει να καταλάβουμε καλύτερα τον τόπο γύρω μας.</p>
+        <div class="hero-meta">
+          <span><strong>Οδηγός:</strong> τα βασικά του GIS</span>
+          <span><strong>Ενημέρωση:</strong> 19 Οκτωβρίου 2026</span>
+        </div>
+      </div>
+      <div class="hero-map">
+        <iframe title="Διαδραστικός χάρτης του κέντρου της Αθήνας από το OpenStreetMap" src="https://www.openstreetmap.org/export/embed.html?bbox=23.690%2C37.958%2C23.755%2C38.006&amp;layer=mapnik&amp;marker=37.9838%2C23.7275" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <span class="map-label">Αθήνα · 37.9838° Β, 23.7275° Α</span>
+      </div>
+    </div>
+
+    <div class="ticker" role="note">
+      <div class="wrap ticker-inner">
+        <span class="ticker-tag">Στο επίκεντρο</span>
+        <p>Το QGIS 4.2 καταγράφεται στις <strong>3 Ιουλίου 2026</strong> στην επίσημη λίστα αλλαγών. <a href="https://qgis.org/project/visual-changelogs/" target="_blank" rel="noopener noreferrer">Δες την πηγή ↗</a></p>
+      </div>
+    </div>
+
+    <section class="basics section" id="basics">
+      <div class="wrap">
+        <div class="section-heading">
+          <div><p class="eyebrow">01 / Τα βασικά</p><h2>Τι κάνει ένα GIS;</h2></div>
+          <p class="section-note">Συνδέει το «πού» με το «τι» και το «πότε», για να μετατρέψει γεωγραφικά δεδομένα σε χρήσιμη πληροφορία.</p>
+        </div>
+        <div class="concept-grid">
+          <article class="concept">
+            <div class="concept-index"><span>01 — Επίπεδα</span><span aria-hidden="true">↗</span></div>
+            <h3>Συνδυάζει δεδομένα</h3>
+            <p>Κάθε επίπεδο δείχνει ένα θέμα: δρόμους, υψόμετρο, χρήσεις γης ή πληθυσμό. Μαζί αποκαλύπτουν σχέσεις που δεν φαίνονται μεμονωμένα.</p>
+          </article>
+          <article class="concept">
+            <div class="concept-index"><span>02 — Τύποι δεδομένων</span><span aria-hidden="true">◈</span></div>
+            <h3>Διαβάζει τον χώρο</h3>
+            <p>Τα διανυσματικά δεδομένα περιγράφουν σημεία, γραμμές και περιοχές. Τα raster αποτελούνται από κελιά, όπως μια δορυφορική εικόνα.</p>
+          </article>
+          <article class="concept">
+            <div class="concept-index"><span>03 — Ανάλυση</span><span aria-hidden="true">⌖</span></div>
+            <h3>Απαντά ερωτήσεις</h3>
+            <p>Πού βρίσκονται οι κοντινότερες υπηρεσίες; Ποιες περιοχές κινδυνεύουν από πλημμύρα; Το GIS μετρά αποστάσεις, επικαλύπτει και συγκρίνει.</p>
+          </article>
+        </div>
+        <div class="use-strip" aria-label="Παραδείγματα εφαρμογών GIS">
+          <span class="use-label">Στην πράξη:</span>
+          <span class="use-chip">Πόλεις</span><span class="use-chip">Περιβάλλον</span><span class="use-chip">Μεταφορές</span><span class="use-chip">Πολιτική προστασία</span><span class="use-chip">Γεωργία</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="updates section" id="updates">
+      <div class="wrap">
+        <div class="section-heading updates-heading">
+          <div><p class="eyebrow">02 / Τι αλλάζει</p><h2>Νέα στον χάρτη</h2></div>
+          <p class="section-note">Επιλεγμένες εξελίξεις και κατευθύνσεις της γεωχωρικής κοινότητας.</p>
+        </div>
+        <div class="filters" role="group" aria-label="Φιλτράρισμα ενημερώσεων">
+          <button class="filter" type="button" data-filter="all" aria-pressed="true">Όλα</button>
+          <button class="filter" type="button" data-filter="software" aria-pressed="false">Λογισμικό</button>
+          <button class="filter" type="button" data-filter="data" aria-pressed="false">Δεδομένα</button>
+          <button class="filter" type="button" data-filter="standards" aria-pressed="false">Πρότυπα</button>
+        </div>
+        <div class="update-list" aria-live="polite">
+          <article class="update-card" data-topic="software">
+            <div class="update-meta"><span class="update-kind">Λογισμικό · QGIS</span><time class="update-date" datetime="2026-07-03">03.07.2026</time></div>
+            <h3>Νέα καταχώριση QGIS 4.2</h3>
+            <p>Η επίσημη σελίδα αλλαγών του QGIS περιλαμβάνει το changelog της έκδοσης 4.2. Δες τις επιμέρους αλλαγές στην πρωτογενή πηγή.</p>
+            <a class="source-link" href="https://qgis.org/project/visual-changelogs/visualchangelog42/" target="_blank" rel="noopener noreferrer">Changelog QGIS 4.2 <span aria-hidden="true">↗</span></a>
+          </article>
+          <article class="update-card" data-topic="data">
+            <div class="update-meta"><span class="update-kind">Δεδομένα · Ανοικτά</span><span class="update-date">Σε εξέλιξη</span></div>
+            <h3>Γεωχωρικά δεδομένα για τον ιστό</h3>
+            <p>Μορφότυπα όπως το GeoParquet διευκολύνουν την αποθήκευση και την ανάλυση μεγάλων γεωχωρικών συνόλων δεδομένων.</p>
+            <a class="source-link" href="https://geoparquet.org/" target="_blank" rel="noopener noreferrer">Κοινότητα GeoParquet <span aria-hidden="true">↗</span></a>
+          </article>
+          <article class="update-card" data-topic="standards">
+            <div class="update-meta"><span class="update-kind">Πρότυπα · OGC</span><span class="update-date">Σε εξέλιξη</span></div>
+            <h3>Χάρτες και δεδομένα μέσω APIs</h3>
+            <p>Οι προδιαγραφές OGC API φέρνουν γεωχωρικές λειτουργίες πιο κοντά στις σύγχρονες web υπηρεσίες και εφαρμογές.</p>
+            <a class="source-link" href="https://ogcapi.ogc.org/" target="_blank" rel="noopener noreferrer">Προδιαγραφές OGC API <span aria-hidden="true">↗</span></a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap closing" id="about">
+      <p>Το GIS δεν είναι μόνο ο χάρτης στην οθόνη. Είναι ο τρόπος να δίνουμε στα δεδομένα θέση, πλαίσιο και νόημα.</p>
+      <span class="signature">Με αγάπη, Κική</span>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap"><span>Χάρτης &amp; Τόπος · Ενημέρωση 19.10.2026</span><span>Ο χάρτης παρέχεται από το OpenStreetMap · © OpenStreetMap contributors</span></div>
+  </footer>
+
+  <script>
+    const filterButtons = document.querySelectorAll(".filter");
+    const updateCards = document.querySelectorAll(".update-card");
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const selectedTopic = button.dataset.filter;
+        filterButtons.forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+        updateCards.forEach((card) => {
+          card.hidden = selectedTopic !== "all" && card.dataset.topic !== selectedTopic;
+        });
+      });
+    });
+  </script>
+</body>
+</html>

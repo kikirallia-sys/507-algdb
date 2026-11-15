@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f2">
+  <meta name="description" content="Διαδραστικός χάρτης και εύρεση συντομότερης διαδρομής στο campus.">
+  <title>Διαδρομές στο campus | Ενότητα 2</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.6.1/ol.css">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18332e;
+      --muted: #61716b;
+      --paper: #f5f7f2;
+      --white: #fff;
+      --green: #1e6d57;
+      --green-dark: #164d40;
+      --lime: #d2eb68;
+      --blue: #dcecf3;
+      --coral: #e96d50;
+      --line: #dfe5dc;
+      font-family: "DM Sans", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); line-height: 1.55; }
+    .wrap { width: min(1160px, calc(100% - 40px)); margin-inline: auto; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 72px; border-bottom: 1px solid var(--line); }
+    .brand { display: flex; align-items: center; gap: 11px; color: inherit; text-decoration: none; }
+    .brand-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: var(--lime); color: var(--green-dark); font-weight: 700; }
+    .brand-name { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+    .brand-sub { display: block; margin-top: -3px; color: var(--muted); font-size: 11px; }
+    .topbar a.back { color: var(--green); font-size: 13px; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    main { padding: 38px 0 64px; }
+    .eyebrow { margin: 0 0 6px; color: var(--green); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 40px); line-height: 1.15; }
+    .intro { max-width: 700px; margin: 12px 0 24px; color: var(--muted); font-size: 15px; }
+    .panel { padding: 18px; border: 1px solid var(--line); border-radius: 5px; background: var(--white); }
+    .route-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; }
+    .control { display: grid; gap: 5px; min-width: 130px; }
+    label { color: var(--muted); font-size: 12px; font-weight: 600; }
+    select { min-height: 40px; padding: 7px 34px 7px 11px; border: 1px solid #cbd7cd; border-radius: 3px; background: white; color: var(--ink); font: inherit; }
+    select:focus-visible { outline: 3px solid #d2eb68; outline-offset: 2px; }
+    .result { flex: 1 1 280px; min-height: 40px; padding: 8px 12px; border-left: 3px solid var(--lime); background: #f7f9ef; color: var(--ink); font-size: 14px; }
+    .result strong { color: var(--green-dark); }
+    .result[role="status"] { overflow-wrap: anywhere; }
+    .map-frame { height: min(65vh, 590px); min-height: 380px; margin-top: 16px; overflow: hidden; border: 1px solid #cbd7cd; border-radius: 4px; background: #fff; }
+    #map { width: 100%; height: 100%; }
+    .ol-zoom { top: 12px; left: 12px; }
+    .ol-control button { background-color: var(--green-dark); }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+    .legend span { display: inline-flex; align-items: center; gap: 7px; }
+    .swatch { display: inline-block; width: 22px; height: 4px; border-radius: 2px; background: #578b76; }
+    .swatch.oneway { background: #e96d50; }
+    .swatch.route { height: 6px; background: #7256c8; }
+    .swatch.building { width: 13px; height: 13px; border: 1px solid #819c8c; background: #dce9dc; }
+    .tables { display: grid; grid-template-columns: minmax(240px, .75fr) minmax(480px, 1.5fr); gap: 18px; margin-top: 26px; }
+    .table-panel { min-width: 0; }
+    h2 { margin: 0 0 12px; font-size: 19px; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { color: var(--muted); font-size: 11px; font-weight: 700; }
+    tbody tr:last-child td { border-bottom: 0; }
+    td.number { font-variant-numeric: tabular-nums; text-align: right; }
+    footer { padding: 18px 0 26px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    @media (max-width: 760px) {
+      .wrap { width: min(100% - 28px, 600px); }
+      main { padding-top: 28px; }
+      .panel { padding: 14px; }
+      .route-controls { align-items: stretch; }
+      .control { flex: 1 1 120px; }
+      .result { flex-basis: 100%; }
+      .map-frame { height: 55vh; min-height: 340px; }
+      .tables { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <header class="wrap topbar">
+    <a class="brand" href="../index.html" aria-label="Χάρτης και Τόπος, αρχική">
+      <span class="brand-mark" aria-hidden="true">ΧΤ</span>
+      <span><span class="brand-name">ΧΑΡΤΗΣ &amp; ΤΟΠΟΣ</span><span class="brand-sub">Μάθημα 507 · Ενότητα 2</span></span>
+    </a>
+    <a class="back" href="../index.html">← Αρχική</a>
+  </header>
+
+  <main class="wrap">
+    <p class="eyebrow">Campus · ΕΓΣΑ87</p>
+    <h1>Επέλεξε διαδρομή</h1>
+    <p class="intro">Διάλεξε κόμβο αφετηρίας και προορισμού για να υπολογίσεις και να δεις στον χάρτη τη συντομότερη διαδρομή.</p>
+
+    <section class="panel" aria-label="Επιλογή διαδρομής">
+      <div class="route-controls">
+        <div class="control">
+          <label for="from-node">Από</label>
+          <select id="from-node"></select>
+        </div>
+        <div class="control">
+          <label for="to-node">Προς</label>
+          <select id="to-node"></select>
+        </div>
+        <div class="result" id="route-result" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <div class="map-frame">
+      <div id="map" role="img" aria-label="Χάρτης του οδικού δικτύου του campus"></div>
+    </div>
+    <div class="legend" aria-label="Υπόμνημα χάρτη">
+      <span><i class="swatch building" aria-hidden="true"></i>Κτήρια</span>
+      <span><i class="swatch" aria-hidden="true"></i>Δρόμοι</span>
+      <span><i class="swatch oneway" aria-hidden="true"></i>Μονόδρομος και κατεύθυνση</span>
+      <span><i class="swatch route" aria-hidden="true"></i>Επιλεγμένη διαδρομή</span>
+    </div>
+
+    <div class="tables">
+      <section class="panel table-panel">
+        <h2>Κόμβοι</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Γράμμα</th><th>X</th><th>Y</th><th>Ακμές</th></tr></thead>
+            <tbody id="nodes-table"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel table-panel">
+        <h2>Ακμές δρόμων</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Κωδικός</th><th>Οδός</th><th>Από</th><th>Προς</th><th>Μήκος (m)</th><th>Μονόδρομος</th></tr></thead>
+            <tbody id="edges-table"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer><div class="wrap">Οι αποστάσεις υπολογίζονται σε μέτρα από τις συντεταγμένες ΕΓΣΑ87.</div></footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/ol@10.6.1/dist/ol.js"></script>
+  <script src="campus.js"></script>
+  <script>
+    const nodeLetters = ["Α", "Β", "Γ", "Δ", "Ε", "Ζ", "Η", "Θ", "Ι", "Κ", "Λ", "Μ", "Ν", "Ξ", "Ο", "Π", "Ρ", "Σ", "Τ", "Υ", "Φ", "Χ", "Ψ", "Ω"];
+    const snapTolerance = 0.5;
+    const numberFormat = new Intl.NumberFormat("el-GR", { maximumFractionDigits: 1 });
+    const coordinateFormat = new Intl.NumberFormat("el-GR", { maximumFractionDigits: 2 });
+    const nodes = [];
+    const edges = [];
+
+    function distance(a, b) {
+      return Math.hypot(a[0] - b[0], a[1] - b[1]);
+    }
+
+    function findOrCreateNode(coordinate) {
+      let nearest = null;
+      let nearestDistance = snapTolerance;
+
+      nodes.forEach((node) => {
+        const candidateDistance = distance(node.coordinate, coordinate);
+        if (candidateDistance < nearestDistance) {
+          nearest = node;
+          nearestDistance = candidateDistance;
+        }
+      });
+
+      if (nearest) return nearest;
+      const node = { id: nodes.length, coordinate: coordinate.slice(), letter: "" };
+      nodes.push(node);
+      return node;
+    }
+
+    function lineLength(points) {
+      return points.slice(1).reduce((total, point, index) => total + distance(points[index], point), 0);
+    }
+
+    dromoi.forEach((road) => {
+      const start = findOrCreateNode(road.simeia[0]);
+      const end = findOrCreateNode(road.simeia[road.simeia.length - 1]);
+      edges.push({
+        road,
+        start,
+        end,
+        length: lineLength(road.simeia),
+        coordinates: road.simeia.map((point) => point.slice())
+      });
+    });
+
+    nodes.sort((a, b) => b.coordinate[1] - a.coordinate[1] || a.coordinate[0] - b.coordinate[0]);
+    nodes.forEach((node, index) => { node.letter = nodeLetters[index] || `Κ${index + 1}`; });
+
+    const neighbors = new Map(nodes.map((node) => [node.id, []]));
+    edges.forEach((edge) => {
+      neighbors.get(edge.start.id).push({ node: edge.end, edge });
+      if (!edge.road.monodromos) neighbors.get(edge.end.id).push({ node: edge.start, edge });
+    });
+
+    const fromSelect = document.getElementById("from-node");
+    const toSelect = document.getElementById("to-node");
+    const result = document.getElementById("route-result");
+    const nodeFeatures = nodes.map((node) => new ol.Feature({
+      geometry: new ol.geom.Point(node.coordinate),
+      letter: node.letter
+    }));
+
+    nodes.forEach((node) => {
+      [fromSelect, toSelect].forEach((select) => {
+        const option = document.createElement("option");
+        option.value = String(node.id);
+        option.textContent = node.letter;
+        select.append(option);
+      });
+    });
+    if (nodes.length > 1) toSelect.selectedIndex = nodes.length - 1;
+
+    const buildingFeatures = ktiria.map((building) => {
+      const feature = new ol.Feature({
+        geometry: new ol.geom.Polygon([building.perigramma]),
+        name: building.onoma
+      });
+      return feature;
+    });
+
+    const roadFeatures = edges.map((edge) => new ol.Feature({
+      geometry: new ol.geom.LineString(edge.coordinates),
+      name: edge.road.odos,
+      length: edge.length,
+      oneWay: edge.road.monodromos
+    }));
+
+    const oneWayArrowFeatures = edges
+      .filter((edge) => edge.road.monodromos)
+      .map((edge) => {
+        const middleIndex = Math.floor((edge.coordinates.length - 1) / 2);
+        const first = edge.coordinates[middleIndex];
+        const second = edge.coordinates[middleIndex + 1];
+        const position = [(first[0] + second[0]) / 2, (first[1] + second[1]) / 2];
+        return new ol.Feature({
+          geometry: new ol.geom.Point(position),
+          rotation: Math.atan2(first[1] - second[1], second[0] - first[0])
+        });
+      });
+
+    const buildingLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({ features: buildingFeatures }),
+      style: (feature) => new ol.style.Style({
+        fill: new ol.style.Fill({ color: "rgba(220, 233, 220, 0.82)" }),
+        stroke: new ol.style.Stroke({ color: "#819c8c", width: 1.5 }),
+        text: new ol.style.Text({
+          text: feature.get("name"),
+          font: "600 12px sans-serif",
+          fill: new ol.style.Fill({ color: "#29483b" }),
+          stroke: new ol.style.Stroke({ color: "rgba(255,255,255,.9)", width: 3 }),
+          overflow: true
+        })
+      })
+    });
+
+    const roadLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({ features: roadFeatures }),
+      style: (feature) => {
+        const oneWay = feature.get("oneWay");
+        return new ol.style.Style({
+          stroke: new ol.style.Stroke({ color: oneWay ? "#e96d50" : "#578b76", width: 3 }),
+          text: new ol.style.Text({
+            text: `${feature.get("name")}, ${numberFormat.format(feature.get("length"))} m`,
+            placement: "line",
+            font: "600 11px sans-serif",
+            fill: new ol.style.Fill({ color: oneWay ? "#99462f" : "#315849" }),
+            stroke: new ol.style.Stroke({ color: "rgba(255,255,255,.94)", width: 3 }),
+            overflow: true,
+            maxAngle: Math.PI / 3
+          })
+        });
+      }
+    });
+
+    const arrowLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({ features: oneWayArrowFeatures }),
+      style: (feature) => new ol.style.Style({
+        image: new ol.style.RegularShape({
+          points: 3,
+          radius: 8,
+          rotation: feature.get("rotation"),
+          fill: new ol.style.Fill({ color: "#e96d50" }),
+          stroke: new ol.style.Stroke({ color: "#fff", width: 1 })
+        })
+      })
+    });
+
+    const nodeLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({ features: nodeFeatures }),
+      style: (feature) => new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: 11,
+          fill: new ol.style.Fill({ color: "#164d40" }),
+          stroke: new ol.style.Stroke({ color: "#fff", width: 2 })
+        }),
+        text: new ol.style.Text({
+          text: feature.get("letter"),
+          font: "700 12px sans-serif",
+          fill: new ol.style.Fill({ color: "#fff" })
+        })
+      })
+    });
+
+    const routeSource = new ol.source.Vector();
+    const routeLayer = new ol.layer.Vector({
+      source: routeSource,
+      style: new ol.style.Style({
+        stroke: new ol.style.Stroke({ color: "#7256c8", width: 7, lineCap: "round", lineJoin: "round" })
+      })
+    });
+
+    const allCoordinates = [
+      ...edges.flatMap((edge) => edge.coordinates),
+      ...ktiria.flatMap((building) => building.perigramma)
+    ];
+    const dataExtent = ol.extent.boundingExtent(allCoordinates);
+    const margin = Math.max(50, Math.max(ol.extent.getWidth(dataExtent), ol.extent.getHeight(dataExtent)) * 0.08);
+    const extent = ol.extent.buffer(dataExtent, margin);
+    const projection = new ol.proj.Projection({ code: "CAMPUS:EGSA87", units: "m", extent });
+    ol.proj.addProjection(projection);
+
+    const map = new ol.Map({
+      target: "map",
+      layers: [buildingLayer, roadLayer, arrowLayer, nodeLayer, routeLayer],
+      view: new ol.View({ projection, center: ol.extent.getCenter(extent), zoom: 2 })
+    });
+    map.getView().fit(extent, { size: map.getSize(), padding: [35, 35, 35, 35], maxZoom: 5 });
+
+    function dijkstra(startId, endId) {
+      const distances = new Map(nodes.map((node) => [node.id, Infinity]));
+      const previous = new Map();
+      const pending = new Set(nodes.map((node) => node.id));
+      distances.set(startId, 0);
+
+      while (pending.size > 0) {
+        let currentId = null;
+        let currentDistance = Infinity;
+        pending.forEach((id) => {
+          if (distances.get(id) < currentDistance) {
+            currentId = id;
+            currentDistance = distances.get(id);
+          }
+        });
+        if (currentId === null) break;
+        pending.delete(currentId);
+        if (currentId === endId) break;
+
+        neighbors.get(currentId).forEach(({ node, edge }) => {
+          if (!pending.has(node.id)) return;
+          const candidateDistance = currentDistance + edge.length;
+          if (candidateDistance < distances.get(node.id)) {
+            distances.set(node.id, candidateDistance);
+            previous.set(node.id, { nodeId: currentId, edge });
+          }
+        });
+      }
+
+      if (!Number.isFinite(distances.get(endId))) return null;
+      const pathNodes = [endId];
+      const pathEdges = [];
+      let currentId = endId;
+      while (currentId !== startId) {
+        const step = previous.get(currentId);
+        if (!step) return null;
+        pathEdges.push(step.edge);
+        currentId = step.nodeId;
+        pathNodes.push(currentId);
+      }
+      return {
+        nodes: pathNodes.reverse().map((id) => nodes.find((node) => node.id === id)),
+        edges: pathEdges.reverse(),
+        length: distances.get(endId)
+      };
+    }
+
+    function renderRoute() {
+      const path = dijkstra(Number(fromSelect.value), Number(toSelect.value));
+      routeSource.clear();
+
+      if (!path) {
+        result.textContent = "Δεν υπάρχει διαδρομή.";
+        return;
+      }
+
+      path.edges.forEach((edge) => {
+        routeSource.addFeature(new ol.Feature({
+          geometry: new ol.geom.LineString(edge.coordinates)
+        }));
+      });
+      const routeLetters = path.nodes.map((node) => node.letter).join(" → ");
+      result.textContent = `${routeLetters} · ${numberFormat.format(path.length)} m`;
+    }
+
+    fromSelect.addEventListener("change", renderRoute);
+    toSelect.addEventListener("change", renderRoute);
+
+    document.getElementById("nodes-table").innerHTML = nodes.map((node) => `
+      <tr>
+        <td>${node.letter}</td>
+        <td class="number">${coordinateFormat.format(node.coordinate[0])}</td>
+        <td class="number">${coordinateFormat.format(node.coordinate[1])}</td>
+        <td class="number">${neighbors.get(node.id).length}</td>
+      </tr>
+    `).join("");
+
+    document.getElementById("edges-table").innerHTML = edges.map((edge) => `
+      <tr>
+        <td>${edge.road.kodikos}</td>
+        <td>${edge.road.odos}</td>
+        <td>${edge.start.letter}</td>
+        <td>${edge.end.letter}</td>
+        <td class="number">${numberFormat.format(edge.length)}</td>
+        <td>${edge.road.monodromos ? "Ναι" : "Όχι"}</td>
+      </tr>
+    `).join("");
+
+    renderRoute();
+  </script>
+</body>
+</html>
